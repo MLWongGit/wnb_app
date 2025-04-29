@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "460270664082",
+    "project_id": "wnbappdb",
+    "storage_bucket": "wnbappdb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:460270664082:android:d17d8b9c4ef6ad6f2fe94b",
+        "android_client_info": {
+          "package_name": "com.wnb.orderApp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAB3MYeb1ey83-hwD8RO-V_XE-KMnmzlBo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
