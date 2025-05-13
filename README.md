@@ -1,70 +1,55 @@
 # Flutter Order App
 
-This is a simple Flutter application for managing drink orders. The app allows users to select drinks, view their prices retrieved from Firebase, and submit their orders. It also calculates the total cost of the selected drinks and displays an order summary upon completion.
+This is a Flutter application for managing drink orders. The app allows users to select drinks, view their prices retrieved from Firebase, and submit their orders. It also calculates the total cost of the selected drinks, displays an order summary, and provides additional features such as tracking payment status and generating sales summaries.
 
 ## Features
 
 - User-friendly interface to select drinks
 - Real-time price retrieval from Firebase
 - Order summary with total cost calculation
-- Firebase integration for storing orders
+- Payment status tracking (Paid/Unpaid)
+- End-of-sales functionality with sales summary generation
+- Firebase integration for storing orders and sales summaries
+- Sales summary page displaying daily sales data
 
-## Project Structure
-
-```
-flutter_order_app
-├── lib
-│   ├── main.dart                # Entry point of the application
-│   ├── screens
-│   │   ├── home_screen.dart     # Home screen with navigation options
-│   │   ├── order_screen.dart    # Screen for selecting drinks and placing orders
-│   │   └── summary_screen.dart   # Screen displaying order summary and total cost
-│   ├── models
-│   │   └── drink_model.dart      # Model representing a drink
-│   ├── services
-│   │   ├── firebase_service.dart  # Service for Firebase interactions
-│   │   └── order_service.dart     # Service for managing order logic
-│   ├── widgets
-│   │   ├── drink_list.dart        # Widget displaying available drinks
-│   │   └── order_form.dart        # Widget for inputting order details
-├── android
-├── ios
-├── pubspec.yaml                  # Flutter project configuration
-└── README.md                     # Project documentation
-```
 
 ## Setup Instructions
 
 1. Clone the repository:
-   ```
-   git clone <repository-url>
-   ```
-
 2. Navigate to the project directory:
-   ```
-   cd flutter_order_app
-   ```
-
 3. Install the dependencies:
-   ```
-   flutter pub get
-   ```
-
 4. Set up Firebase for your project:
-   - Create a Firebase project in the Firebase console.
-   - Add your Android and iOS apps to the Firebase project.
-   - Download the `google-services.json` and `GoogleService-Info.plist` files and place them in the respective directories.
-
+- Create a Firebase project in the Firebase console.
+- Add your Android and iOS apps to the Firebase project.
+- Download the `google-services.json` and `GoogleService-Info.plist` files and place them in the respective directories.
 5. Run the application:
-   ```
-   flutter run
-   ```
 
 ## Usage
 
-- Launch the app on your device or emulator.
-- Navigate to the order screen to select drinks and place your order.
-- View the summary of your order and the total cost after submission.
+- **Welcome Page**: Navigate to different sections of the app.
+- **Order Page**: Select drinks, view prices, and place orders.
+- **Ordering Status Page**:
+  - Track the status of orders (Pending/Complete).
+  - Track payment status (Paid/Unpaid).
+  - Mark orders as "Complete" or "Paid."
+  - Use the "End of Sales" button to generate a daily sales summary and clear all orders.
+- **Sales Summary Page**:
+  - View daily sales summaries in a table format.
+  - Data includes:
+ - Date
+ - Total Sales
+ - Total Drinks Ordered
+ - Total Sales Amount
+
+## Features Added
+
+- **Grouped Orders**: Orders are displayed in a grouped format (e.g., `Black Hot x2; Mocha Cold`).
+- **End of Sales**:
+  - Generates a sales summary for the day.
+  - Updates existing sales summary records if the date already exists.
+  - Deletes all orders after generating the summary.
+- **Sales Summary Page**:
+  - Displays sales data ordered by date (latest to oldest).
 
 ## Contributing
 
