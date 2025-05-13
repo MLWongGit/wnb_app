@@ -1,4 +1,4 @@
-package com.example.wnb_app
+package com.wnb.orderApp
 
 import io.flutter.embedding.android.FlutterActivity
 
