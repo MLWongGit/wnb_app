@@ -128,7 +128,7 @@ class _OrderPageState extends State<OrderPage> {
                         Text(
                           drink['name'] as String,
                           style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                              fontSize: 14, fontWeight: FontWeight.bold),
                         ),
                         // Buttons for Hot and Cold
                         Row(
