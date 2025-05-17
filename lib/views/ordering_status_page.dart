@@ -18,9 +18,11 @@ class OrderingStatusPage extends StatelessWidget {
       }
 
       // Get the date from the first order's timestamp
-      final Timestamp firstOrderTimestamp = orders.first['timestamp'] as Timestamp;
+      final Timestamp firstOrderTimestamp =
+          orders.first['timestamp'] as Timestamp;
       final DateTime firstOrderDate = firstOrderTimestamp.toDate();
-      final String formattedDate = firstOrderDate.toLocal().toString().split(' ')[0];
+      final String formattedDate =
+          firstOrderDate.toLocal().toString().split(' ')[0];
 
       // Calculate metrics
       final int totalSales = orders.length;
@@ -113,12 +115,15 @@ class OrderingStatusPage extends StatelessWidget {
 
   // Function to fetch today's orders
   Stream<QuerySnapshot> fetchTodaysOrders() {
+    final isToday = true;
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
+    final previousDay = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
 
     return FirebaseFirestore.instance
         .collection('orders')
-        .where('timestamp', isGreaterThanOrEqualTo: startOfDay)
+        .where('timestamp', isGreaterThanOrEqualTo: isToday == true ? startOfDay : previousDay)
+        .orderBy('timestamp', descending: true)
         .snapshots();
   }
 
@@ -186,131 +191,139 @@ class OrderingStatusPage extends StatelessWidget {
                   padding: const EdgeInsets.all(16.0),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      columns: const [
-                        DataColumn(label: Text('No.')), // Column for No.
-                        DataColumn(
-                          label: Text('Action'),
-                        ), // Column for Action Buttons
-                        DataColumn(label: Text('Price')), // Column for Price
-                        DataColumn(label: Text('Orders')), // Column for Orders
-                        DataColumn(label: Text('Status')), // Column for Status
-                        DataColumn(
-                          label: Text('Payment Status'),
-                        ), // Column for Payment Status
-                      ],
-                      rows: List<DataRow>.generate(orders.length, (index) {
-                        final order = orders[index];
-                        final orderId = order.id;
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: DataTable(
+                        columns: const [
+                          DataColumn(label: Text('No.')), // Column for No.
+                          DataColumn(
+                            label: Text('Action'),
+                          ), // Column for Action Buttons
+                          DataColumn(label: Text('Price')), // Column for Price
+                          DataColumn(
+                            label: Text('Orders'),
+                          ), // Column for Orders
+                          DataColumn(
+                            label: Text('Status'),
+                          ), // Column for Status
+                          DataColumn(
+                            label: Text('Payment Status'),
+                          ), // Column for Payment Status
+                        ],
+                        rows: List<DataRow>.generate(orders.length, (index) {
+                          final order = orders[index];
+                          final orderId = order.id;
 
-                        // Group and count items
-                        final itemsList = order['items'] as List;
-                        final Map<String, int> groupedItems = {};
-                        for (var item in itemsList) {
-                          final itemName = '${item['name']} ${item['type']}';
-                          groupedItems[itemName] =
-                              (groupedItems[itemName] ?? 0) + 1;
-                        }
+                          // Group and count items
+                          final itemsList = order['items'] as List;
+                          final Map<String, int> groupedItems = {};
+                          for (var item in itemsList) {
+                            final itemName = '${item['name']} ${item['type']}';
+                            groupedItems[itemName] =
+                                (groupedItems[itemName] ?? 0) + 1;
+                          }
 
-                        // Format items as "ItemName xCount"
-                        final formattedItems = groupedItems.entries
-                            .map(
-                              (entry) =>
-                                  entry.value > 1
-                                      ? '${entry.key} x${entry.value}'
-                                      : entry.key,
-                            )
-                            .join('; ');
+                          // Format items as "ItemName xCount"
+                          final formattedItems = groupedItems.entries
+                              .map(
+                                (entry) =>
+                                    entry.value > 1
+                                        ? '${entry.key} x${entry.value}'
+                                        : entry.key,
+                              )
+                              .join('; ');
 
-                        final status = order['status'] as String;
-                        final paymentStatus =
-                            order['paymentStatus'] as String? ?? 'Unpaid';
-                        final totalPrice =
-                            order['totalAmount']
-                                as num; // Assuming totalAmount is stored in the order
+                          final status = order['status'] as String;
+                          final paymentStatus =
+                              order['paymentStatus'] as String? ?? 'Unpaid';
+                          final totalPrice =
+                              order['totalAmount']
+                                  as num; // Assuming totalAmount is stored in the order
 
-                        return DataRow(
-                          cells: [
-                            // No.
-                            DataCell(Text('${index + 1}')),
+                          return DataRow(
+                            cells: [
+                              // No.
+                              DataCell(Text('${index + 1}')),
 
-                            // Action Buttons
-                            DataCell(
-                              Row(
-                                children: [
-                                  // Complete Button
-                                  if (status != 'Complete')
-                                    ElevatedButton(
-                                      onPressed: () => markAsComplete(orderId),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue,
+                              // Action Buttons
+                              DataCell(
+                                Row(
+                                  children: [
+                                    // Complete Button
+                                    if (status != 'Complete')
+                                      ElevatedButton(
+                                        onPressed:
+                                            () => markAsComplete(orderId),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.blue,
+                                        ),
+                                        child: const Text('Complete'),
                                       ),
-                                      child: const Text('Complete'),
-                                    ),
-                                  const SizedBox(width: 8),
-                                  // Paid Button
-                                  if (paymentStatus != 'Paid')
-                                    ElevatedButton(
-                                      onPressed: () => markAsPaid(orderId),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green,
+                                    const SizedBox(width: 8),
+                                    // Paid Button
+                                    if (paymentStatus != 'Paid')
+                                      ElevatedButton(
+                                        onPressed: () => markAsPaid(orderId),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                        ),
+                                        child: const Text('Paid'),
                                       ),
-                                      child: const Text('Paid'),
-                                    ),
-                                  const SizedBox(width: 8),
-                                  // Remove Button
-                                  if (paymentStatus != 'Paid')
-                                    ElevatedButton(
-                                      onPressed: () async {
-                                        await removeOrder(
-                                          orderId,
-                                        ); // Remove the order
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red,
+                                    const SizedBox(width: 8),
+                                    // Remove Button
+                                    if (paymentStatus != 'Paid')
+                                      ElevatedButton(
+                                        onPressed: () async {
+                                          await removeOrder(
+                                            orderId,
+                                          ); // Remove the order
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red,
+                                        ),
+                                        child: const Text('Remove'),
                                       ),
-                                      child: const Text('Remove'),
-                                    ),
-                                ],
-                              ),
-                            ),
-
-                            // Price
-                            DataCell(
-                              Text('\$${totalPrice.toStringAsFixed(2)}'),
-                            ),
-
-                            // Orders
-                            DataCell(Text(formattedItems)),
-
-                            // Status
-                            DataCell(
-                              Text(
-                                status,
-                                style: TextStyle(
-                                  color:
-                                      status == 'Complete'
-                                          ? Colors.green
-                                          : Colors.orange,
+                                  ],
                                 ),
                               ),
-                            ),
 
-                            // Payment Status
-                            DataCell(
-                              Text(
-                                paymentStatus,
-                                style: TextStyle(
-                                  color:
-                                      paymentStatus == 'Paid'
-                                          ? Colors.green
-                                          : Colors.red,
+                              // Price
+                              DataCell(
+                                Text('\$${totalPrice.toStringAsFixed(2)}'),
+                              ),
+
+                              // Orders
+                              DataCell(Text(formattedItems)),
+
+                              // Status
+                              DataCell(
+                                Text(
+                                  status,
+                                  style: TextStyle(
+                                    color:
+                                        status == 'Complete'
+                                            ? Colors.green
+                                            : Colors.orange,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        );
-                      }),
+
+                              // Payment Status
+                              DataCell(
+                                Text(
+                                  paymentStatus,
+                                  style: TextStyle(
+                                    color:
+                                        paymentStatus == 'Paid'
+                                            ? Colors.green
+                                            : Colors.red,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                      ),
                     ),
                   ),
                 ),
