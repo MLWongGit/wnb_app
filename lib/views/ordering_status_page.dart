@@ -115,14 +115,13 @@ class OrderingStatusPage extends StatelessWidget {
 
   // Function to fetch today's orders
   Stream<QuerySnapshot> fetchTodaysOrders() {
-    final isToday = true;
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
-    final previousDay = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
+    
 
     return FirebaseFirestore.instance
         .collection('orders')
-        .where('timestamp', isGreaterThanOrEqualTo: isToday == true ? startOfDay : previousDay)
+        .where('timestamp', isLessThanOrEqualTo: startOfDay)
         .orderBy('timestamp', descending: true)
         .snapshots();
   }
