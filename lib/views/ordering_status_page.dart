@@ -114,17 +114,29 @@ class OrderingStatusPage extends StatelessWidget {
   }
 
   // Function to fetch today's orders
-  Stream<QuerySnapshot> fetchTodaysOrders() {
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
+  // Stream<QuerySnapshot> fetchTodaysOrders() {
+  //   final now = DateTime.now();
+  //   final startOfDay = DateTime(now.year, now.month, now.day);
     
 
-    return FirebaseFirestore.instance
-        .collection('orders')
-        .where('timestamp', isLessThanOrEqualTo: startOfDay)
-        .orderBy('timestamp', descending: true)
-        .snapshots();
-  }
+  //   return FirebaseFirestore.instance
+  //       .collection('orders')
+  //       .where('timestamp', isLessThanOrEqualTo: startOfDay)
+  //       .orderBy('timestamp', descending: true)
+  //       .snapshots();
+  // }
+
+  Stream<QuerySnapshot> fetchTodaysOrders() {
+  final now = DateTime.now();
+  final startOfDay = DateTime(now.year, now.month, now.day);
+  final endOfDay = startOfDay.add(const Duration(days: 1));
+
+  return FirebaseFirestore.instance
+      .collection('orders')
+      .where('timestamp', isLessThanOrEqualTo: endOfDay)
+      .orderBy('timestamp', descending: true)
+      .snapshots();
+}
 
   // Function to update the status of an order to "Complete"
   Future<void> markAsComplete(String orderId) async {
