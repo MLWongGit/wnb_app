@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'sales_summary_page.dart';
+import '../utils/wifi_checker.dart';
+import '../utils/dialog_helper.dart';
 
 class OrderingStatusPage extends StatelessWidget {
   const OrderingStatusPage({super.key});
@@ -117,7 +119,6 @@ class OrderingStatusPage extends StatelessWidget {
   // Stream<QuerySnapshot> fetchTodaysOrders() {
   //   final now = DateTime.now();
   //   final startOfDay = DateTime(now.year, now.month, now.day);
-    
 
   //   return FirebaseFirestore.instance
   //       .collection('orders')
@@ -127,19 +128,23 @@ class OrderingStatusPage extends StatelessWidget {
   // }
 
   Stream<QuerySnapshot> fetchTodaysOrders() {
-  final now = DateTime.now();
-  final startOfDay = DateTime(now.year, now.month, now.day);
-  final endOfDay = startOfDay.add(const Duration(days: 1));
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
 
-  return FirebaseFirestore.instance
-      .collection('orders')
-      .where('timestamp', isLessThanOrEqualTo: endOfDay)
-      .orderBy('timestamp', descending: true)
-      .snapshots();
-}
+    return FirebaseFirestore.instance
+        .collection('orders')
+        .where('timestamp', isLessThanOrEqualTo: endOfDay)
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
 
   // Function to update the status of an order to "Complete"
-  Future<void> markAsComplete(String orderId) async {
+  Future<void> markAsComplete(BuildContext context, String orderId) async {
+    if (!await WifiChecker.isNetworkConnected()) {
+      DialogHelper.showWifiWarning(context);
+      return;
+    }
     try {
       await FirebaseFirestore.instance.collection('orders').doc(orderId).update(
         {'status': 'Complete'},
@@ -150,7 +155,11 @@ class OrderingStatusPage extends StatelessWidget {
   }
 
   // Function to update the payment status of an order to "Paid"
-  Future<void> markAsPaid(String orderId) async {
+  Future<void> markAsPaid(BuildContext context, String orderId) async {
+    if (!await WifiChecker.isNetworkConnected()) {
+      DialogHelper.showWifiWarning(context);
+      return;
+    }
     try {
       await FirebaseFirestore.instance.collection('orders').doc(orderId).update(
         {'paymentStatus': 'Paid'},
@@ -160,7 +169,11 @@ class OrderingStatusPage extends StatelessWidget {
     }
   }
 
-  Future<void> removeOrder(String orderId) async {
+  Future<void> removeOrder(BuildContext context, String orderId) async {
+    if (!await WifiChecker.isNetworkConnected()) {
+      DialogHelper.showWifiWarning(context);
+      return;
+    }
     try {
       await FirebaseFirestore.instance
           .collection('orders')
@@ -264,7 +277,10 @@ class OrderingStatusPage extends StatelessWidget {
                                     if (status != 'Complete')
                                       ElevatedButton(
                                         onPressed:
-                                            () => markAsComplete(orderId),
+                                            () => markAsComplete(
+                                              context,
+                                              orderId,
+                                            ),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.blue,
                                         ),
@@ -274,7 +290,8 @@ class OrderingStatusPage extends StatelessWidget {
                                     // Paid Button
                                     if (paymentStatus != 'Paid')
                                       ElevatedButton(
-                                        onPressed: () => markAsPaid(orderId),
+                                        onPressed:
+                                            () => markAsPaid(context, orderId),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.green,
                                         ),
@@ -286,6 +303,7 @@ class OrderingStatusPage extends StatelessWidget {
                                       ElevatedButton(
                                         onPressed: () async {
                                           await removeOrder(
+                                            context,
                                             orderId,
                                           ); // Remove the order
                                         },
@@ -346,7 +364,13 @@ class OrderingStatusPage extends StatelessWidget {
                   onPressed:
                       hasUnpaidOrders
                           ? null
-                          : () => endOfSales(context, orders),
+                          : () async {
+                            if (!await WifiChecker.isNetworkConnected()) {
+                              DialogHelper.showWifiWarning(context);
+                              return;
+                            }
+                            await endOfSales(context, orders);
+                          },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: hasUnpaidOrders ? Colors.grey : Colors.red,
                     padding: const EdgeInsets.symmetric(
