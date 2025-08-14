@@ -24,6 +24,8 @@ class _OrderPageState extends State<OrderPage> {
     Drink(name: 'Mocha', type: 'CAFFINE', hotPrice: 13, coldPrice: 14),
     Drink(name: 'Dirty Matcha', type: 'CAFFINE', hotPrice: 14, coldPrice: 15),
     Drink(name: 'Orange Black', type: 'CAFFINE', hotPrice: 0, coldPrice: 11),
+    Drink(name: 'Flavoured Coffee', type: 'CAFFINE', hotPrice: 0, coldPrice: 2),
+    Drink(name: 'Additional Request', type: 'CAFFINE', hotPrice: 0, coldPrice: 1),
     
     //NON-CAFFINE
     Drink(name: 'Chocolate', type: 'NON-CAFFINE', hotPrice: 12, coldPrice: 13),
@@ -41,6 +43,7 @@ class _OrderPageState extends State<OrderPage> {
     Drink(name: 'Strawberry', type: 'SPARKLING', hotPrice: 0, coldPrice: 15),
     Drink(name: 'Pineapple', type: 'SPARKLING', hotPrice: 0, coldPrice: 15),
     Drink(name: 'Mint Sour Plum', type: 'SPARKLING', hotPrice: 0, coldPrice: 15),
+    Drink(name: 'Lychee', type: 'SPARKLING', hotPrice: 0, coldPrice: 15),
 
     //TEA BAG
     Drink(name: 'Tea bag', type: 'TEA BAG', hotPrice: 6, coldPrice: 7)
