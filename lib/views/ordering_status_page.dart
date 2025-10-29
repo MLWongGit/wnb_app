@@ -13,79 +13,171 @@ class OrderingStatusPage extends StatelessWidget {
     List<QueryDocumentSnapshot> orders,
   ) async {
     try {
-      // Ensure there are orders to process
-      if (orders.isEmpty) {
-        print('No orders to process for end of sales.');
-        return;
-      }
+      // // Ensure there are orders to process
+      // if (orders.isEmpty) {
+      //   print('No orders to process for end of sales.');
+      //   return;
+      // }
 
-      // Get the date from the first order's timestamp
-      final Timestamp firstOrderTimestamp =
-          orders.first['timestamp'] as Timestamp;
-      final DateTime firstOrderDate = firstOrderTimestamp.toDate();
-      final String formattedDate =
-          firstOrderDate.toLocal().toString().split(' ')[0];
+      // // Get the date from the first order's timestamp
+      // final Timestamp firstOrderTimestamp =
+      //     orders.first['timestamp'] as Timestamp;
+      // final DateTime firstOrderDate = firstOrderTimestamp.toDate();
+      // final String formattedDate =
+      //     firstOrderDate.toLocal().toString().split(' ')[0];
 
-      // Calculate metrics
+      // // Calculate metrics
+      // final int totalSales = orders.length;
+      // final int totalDrinksOrdered = orders.fold<int>(
+      //   0,
+      //   (sum, order) => sum + (order['items'] as List).length,
+      // );
+      // final Map<String, int> listOfDrinksOrdered = {};
+      // for (var order in orders) {
+      //   for (var item in order['items'] as List) {
+      //     final drinkName = '${item['name']} ${item['type']}';
+      //     listOfDrinksOrdered[drinkName] =
+      //         (listOfDrinksOrdered[drinkName] ?? 0) + 1;
+      //   }
+      // }
+      // final double totalSalesAmount = orders.fold<double>(
+      //   0,
+      //   (sum, order) => sum + (order['totalAmount'] as num).toDouble(),
+      // );
+
+      // // Check if a record for today's date already exists
+      // final salesSummaryCollection = FirebaseFirestore.instance.collection(
+      //   'salesSummary',
+      // );
+      // final existingSummaryQuery =
+      //     await salesSummaryCollection
+      //         .where('date', isEqualTo: formattedDate)
+      //         .get();
+
+      // if (existingSummaryQuery.docs.isNotEmpty) {
+      //   // Update the existing record
+      //   final existingSummary = existingSummaryQuery.docs.first;
+      //   final existingData = existingSummary.data() as Map<String, dynamic>;
+
+      //   // Update metrics
+      //   final updatedTotalSales =
+      //       (existingData['totalSales'] as int) + totalSales;
+      //   final updatedTotalDrinksOrdered =
+      //       (existingData['totalDrinksOrdered'] as int) + totalDrinksOrdered;
+      //   final updatedListOfDrinksOrdered = Map<String, int>.from(
+      //     existingData['listOfDrinksOrdered'] as Map,
+      //   )..addAll(
+      //     listOfDrinksOrdered.map(
+      //       (key, value) => MapEntry(
+      //         key,
+      //         (existingData['listOfDrinksOrdered'][key] ?? 0) + value,
+      //       ),
+      //     ),
+      //   );
+      //   final updatedTotalSalesAmount =
+      //       (existingData['totalSalesAmount'] as double) + totalSalesAmount;
+
+      //   // Update Firestore document
+      //   await salesSummaryCollection.doc(existingSummary.id).update({
+      //     'totalSales': updatedTotalSales,
+      //     'totalDrinksOrdered': updatedTotalDrinksOrdered,
+      //     'listOfDrinksOrdered': updatedListOfDrinksOrdered,
+      //     'totalSalesAmount': updatedTotalSalesAmount,
+      //   });
+      // } else {
+      //   // Insert a new record
+      //   final salesSummaryData = {
+      //     'date': formattedDate,
+      //     'totalSales': totalSales,
+      //     'totalDrinksOrdered': totalDrinksOrdered,
+      //     'listOfDrinksOrdered': listOfDrinksOrdered,
+      //     'totalSalesAmount': totalSalesAmount,
+      //   };
+
+      //   await salesSummaryCollection.add(salesSummaryData);
+      // }
+
+      // // Delete all documents in the orders collection
+      // final ordersCollection = FirebaseFirestore.instance.collection('orders');
+      // final batch = FirebaseFirestore.instance.batch();
+      // for (var order in orders) {
+      //   batch.delete(order.reference);
+      // }
+      // await batch.commit();
+
+      // // Redirect to SalesSummaryPage
+      // Navigator.pushReplacement(
+      //   context,
+      //   MaterialPageRoute(builder: (context) => const SalesSummaryPage()),
+      // );
+      if (orders.isEmpty) return;
+
+      final salesSummaryCollection =
+          FirebaseFirestore.instance.collection('salesSummary');
+
+      // Find the earliest order timestamp (this becomes the "sales date")
+      DateTime earliest = orders
+          .map((o) => (o['timestamp'] as Timestamp).toDate().toLocal())
+          .reduce((a, b) => a.isBefore(b) ? a : b);
+
+      // Normalize to midnight local date (YYYY-MM-DD)
+      final formattedDate =
+          '${earliest.year.toString().padLeft(4, '0')}-${earliest.month.toString().padLeft(2, '0')}-${earliest.day.toString().padLeft(2, '0')}';
+
+      // Aggregate metrics across all provided orders
       final int totalSales = orders.length;
       final int totalDrinksOrdered = orders.fold<int>(
         0,
-        (sum, order) => sum + (order['items'] as List).length,
+        (sum, o) {
+          final items = o['items'] as List<dynamic>? ?? [];
+          return sum + items.length;
+        },
       );
+
       final Map<String, int> listOfDrinksOrdered = {};
-      for (var order in orders) {
-        for (var item in order['items'] as List) {
-          final drinkName = '${item['name']} ${item['type']}';
-          listOfDrinksOrdered[drinkName] =
-              (listOfDrinksOrdered[drinkName] ?? 0) + 1;
+      double totalSalesAmount = 0.0;
+      for (var o in orders) {
+        final items = (o['items'] as List<dynamic>? ?? []);
+        for (var item in items) {
+          final name = '${item['name']} ${item['type']}';
+          listOfDrinksOrdered[name] = (listOfDrinksOrdered[name] ?? 0) + 1;
         }
+        totalSalesAmount += ((o['totalAmount'] as num?)?.toDouble() ?? 0.0);
       }
-      final double totalSalesAmount = orders.fold<double>(
-        0,
-        (sum, order) => sum + (order['totalAmount'] as num).toDouble(),
-      );
 
-      // Check if a record for today's date already exists
-      final salesSummaryCollection = FirebaseFirestore.instance.collection(
-        'salesSummary',
-      );
-      final existingSummaryQuery =
-          await salesSummaryCollection
-              .where('date', isEqualTo: formattedDate)
-              .get();
+      // Check existing summary for this date
+      final existingQuery = await salesSummaryCollection
+          .where('date', isEqualTo: formattedDate)
+          .limit(1)
+          .get();
 
-      if (existingSummaryQuery.docs.isNotEmpty) {
-        // Update the existing record
-        final existingSummary = existingSummaryQuery.docs.first;
-        final existingData = existingSummary.data() as Map<String, dynamic>;
+      if (existingQuery.docs.isNotEmpty) {
+        final existing = existingQuery.docs.first;
+        final existingData = existing.data() as Map<String, dynamic>;
 
-        // Update metrics
         final updatedTotalSales =
-            (existingData['totalSales'] as int) + totalSales;
-        final updatedTotalDrinksOrdered =
-            (existingData['totalDrinksOrdered'] as int) + totalDrinksOrdered;
-        final updatedListOfDrinksOrdered = Map<String, int>.from(
-          existingData['listOfDrinksOrdered'] as Map,
-        )..addAll(
-          listOfDrinksOrdered.map(
-            (key, value) => MapEntry(
-              key,
-              (existingData['listOfDrinksOrdered'][key] ?? 0) + value,
-            ),
-          ),
-        );
-        final updatedTotalSalesAmount =
-            (existingData['totalSalesAmount'] as double) + totalSalesAmount;
+            (existingData['totalSales'] as int? ?? 0) + totalSales;
+        final updatedTotalDrinks =
+            (existingData['totalDrinksOrdered'] as int? ?? 0) + totalDrinksOrdered;
 
-        // Update Firestore document
-        await salesSummaryCollection.doc(existingSummary.id).update({
+        // Merge drink maps safely
+        final Map<String, int> updatedDrinks =
+            Map<String, int>.from(existingData['listOfDrinksOrdered'] as Map? ?? {});
+        listOfDrinksOrdered.forEach((key, value) {
+          updatedDrinks[key] = (updatedDrinks[key] ?? 0) + value;
+        });
+
+        final updatedAmount =
+            (existingData['totalSalesAmount'] as num? ?? 0.0) + totalSalesAmount;
+
+        await salesSummaryCollection.doc(existing.id).update({
           'totalSales': updatedTotalSales,
-          'totalDrinksOrdered': updatedTotalDrinksOrdered,
-          'listOfDrinksOrdered': updatedListOfDrinksOrdered,
-          'totalSalesAmount': updatedTotalSalesAmount,
+          'totalDrinksOrdered': updatedTotalDrinks,
+          'listOfDrinksOrdered': updatedDrinks,
+          'totalSalesAmount': updatedAmount,
         });
       } else {
-        // Insert a new record
+        // Create new summary document for this "sales date"
         final salesSummaryData = {
           'date': formattedDate,
           'totalSales': totalSales,
@@ -93,19 +185,17 @@ class OrderingStatusPage extends StatelessWidget {
           'listOfDrinksOrdered': listOfDrinksOrdered,
           'totalSalesAmount': totalSalesAmount,
         };
-
         await salesSummaryCollection.add(salesSummaryData);
       }
 
-      // Delete all documents in the orders collection
-      final ordersCollection = FirebaseFirestore.instance.collection('orders');
+      // Delete processed orders in a batch
       final batch = FirebaseFirestore.instance.batch();
       for (var order in orders) {
         batch.delete(order.reference);
       }
       await batch.commit();
 
-      // Redirect to SalesSummaryPage
+      // Navigate to SalesSummaryPage (or refresh as needed)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const SalesSummaryPage()),
@@ -127,15 +217,12 @@ class OrderingStatusPage extends StatelessWidget {
   //       .snapshots();
   // }
 
-  Stream<QuerySnapshot> fetchTodaysOrders() {
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
-
+  // Replace fetchTodaysOrders with fetchCurrentOrders that returns all remaining orders
+  Stream<QuerySnapshot> fetchCurrentOrders() {
+    // Return all orders (current session). Earliest order will be the first sale.
     return FirebaseFirestore.instance
         .collection('orders')
-        .where('timestamp', isLessThanOrEqualTo: endOfDay)
-        .orderBy('timestamp', descending: true)
+        .orderBy('timestamp', descending: false) // earliest first
         .snapshots();
   }
 
@@ -190,7 +277,7 @@ class OrderingStatusPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Order Summary')),
       body: StreamBuilder<QuerySnapshot>(
-        stream: fetchTodaysOrders(),
+        stream: fetchCurrentOrders(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -361,16 +448,27 @@ class OrderingStatusPage extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: ElevatedButton(
-                  onPressed:
-                      hasUnpaidOrders
-                          ? null
-                          : () async {
-                            if (!await WifiChecker.isNetworkConnected()) {
-                              DialogHelper.showWifiWarning(context);
-                              return;
-                            }
-                            await endOfSales(context, orders);
-                          },
+                  onPressed: hasUnpaidOrders
+                      ? null
+                      : () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Confirm end of sales'),
+                              content: const Text('This will finalise current session. Continue?'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirm')),
+                              ],
+                            ),
+                          );
+                          if (confirm != true) return;
+                          if (!await WifiChecker.isNetworkConnected()) {
+                            DialogHelper.showWifiWarning(context);
+                            return;
+                          }
+                          await endOfSales(context, orders);
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: hasUnpaidOrders ? Colors.grey : Colors.red,
                     padding: const EdgeInsets.symmetric(

@@ -19,6 +19,8 @@ class _OrderPageState extends State<OrderPage> {
   // Example data for drinks with prices
   final List<Drink> drinks = [
     //CAFFINE
+    Drink(name: 'DISCOUNT RM3 - Existing', type: 'CAFFINE', hotPrice: -3, coldPrice: 0),
+    Drink(name: 'DISCOUNT RM5 - New', type: 'CAFFINE', hotPrice: -5, coldPrice: 0),
     Drink(name: 'Black', type: 'CAFFINE', hotPrice: 8, coldPrice: 9),
     Drink(name: 'White', type: 'CAFFINE', hotPrice: 10, coldPrice: 11),
     Drink(name: 'Mocha', type: 'CAFFINE', hotPrice: 13, coldPrice: 14),
@@ -194,7 +196,21 @@ class _OrderPageState extends State<OrderPage> {
                                           ),
                                           child: const Text('Hot'),
                                         ),
-                                      if (drink.hotPrice > 0)
+                                      if ( drink.hotPrice < 0)
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            addToTotal(
+                                              drink.name,
+                                              'Discount',
+                                              drink.hotPrice,
+                                            );
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                          ),
+                                          child: const Text('DISCOUNT'),
+                                        ),  
+                                      if (drink.hotPrice > 0 || drink.hotPrice < 0)
                                         const SizedBox(width: 8),
                                       if (drink.coldPrice > 0)
                                         ElevatedButton(
