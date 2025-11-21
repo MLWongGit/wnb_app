@@ -4,8 +4,15 @@ import 'sales_summary_page.dart';
 import '../utils/wifi_checker.dart';
 import '../utils/dialog_helper.dart';
 
-class OrderingStatusPage extends StatelessWidget {
+class OrderingStatusPage extends StatefulWidget {
   const OrderingStatusPage({super.key});
+
+  @override
+  State<OrderingStatusPage> createState() => _OrderingStatusPageState();
+}
+
+class _OrderingStatusPageState extends State<OrderingStatusPage> {
+  double _addedAmount = 0.0; // accumulated amount added via the + button
 
   // Function to calculate and save sales summary
   Future<void> endOfSales(
@@ -13,118 +20,17 @@ class OrderingStatusPage extends StatelessWidget {
     List<QueryDocumentSnapshot> orders,
   ) async {
     try {
-      // // Ensure there are orders to process
-      // if (orders.isEmpty) {
-      //   print('No orders to process for end of sales.');
-      //   return;
-      // }
-
-      // // Get the date from the first order's timestamp
-      // final Timestamp firstOrderTimestamp =
-      //     orders.first['timestamp'] as Timestamp;
-      // final DateTime firstOrderDate = firstOrderTimestamp.toDate();
-      // final String formattedDate =
-      //     firstOrderDate.toLocal().toString().split(' ')[0];
-
-      // // Calculate metrics
-      // final int totalSales = orders.length;
-      // final int totalDrinksOrdered = orders.fold<int>(
-      //   0,
-      //   (sum, order) => sum + (order['items'] as List).length,
-      // );
-      // final Map<String, int> listOfDrinksOrdered = {};
-      // for (var order in orders) {
-      //   for (var item in order['items'] as List) {
-      //     final drinkName = '${item['name']} ${item['type']}';
-      //     listOfDrinksOrdered[drinkName] =
-      //         (listOfDrinksOrdered[drinkName] ?? 0) + 1;
-      //   }
-      // }
-      // final double totalSalesAmount = orders.fold<double>(
-      //   0,
-      //   (sum, order) => sum + (order['totalAmount'] as num).toDouble(),
-      // );
-
-      // // Check if a record for today's date already exists
-      // final salesSummaryCollection = FirebaseFirestore.instance.collection(
-      //   'salesSummary',
-      // );
-      // final existingSummaryQuery =
-      //     await salesSummaryCollection
-      //         .where('date', isEqualTo: formattedDate)
-      //         .get();
-
-      // if (existingSummaryQuery.docs.isNotEmpty) {
-      //   // Update the existing record
-      //   final existingSummary = existingSummaryQuery.docs.first;
-      //   final existingData = existingSummary.data() as Map<String, dynamic>;
-
-      //   // Update metrics
-      //   final updatedTotalSales =
-      //       (existingData['totalSales'] as int) + totalSales;
-      //   final updatedTotalDrinksOrdered =
-      //       (existingData['totalDrinksOrdered'] as int) + totalDrinksOrdered;
-      //   final updatedListOfDrinksOrdered = Map<String, int>.from(
-      //     existingData['listOfDrinksOrdered'] as Map,
-      //   )..addAll(
-      //     listOfDrinksOrdered.map(
-      //       (key, value) => MapEntry(
-      //         key,
-      //         (existingData['listOfDrinksOrdered'][key] ?? 0) + value,
-      //       ),
-      //     ),
-      //   );
-      //   final updatedTotalSalesAmount =
-      //       (existingData['totalSalesAmount'] as double) + totalSalesAmount;
-
-      //   // Update Firestore document
-      //   await salesSummaryCollection.doc(existingSummary.id).update({
-      //     'totalSales': updatedTotalSales,
-      //     'totalDrinksOrdered': updatedTotalDrinksOrdered,
-      //     'listOfDrinksOrdered': updatedListOfDrinksOrdered,
-      //     'totalSalesAmount': updatedTotalSalesAmount,
-      //   });
-      // } else {
-      //   // Insert a new record
-      //   final salesSummaryData = {
-      //     'date': formattedDate,
-      //     'totalSales': totalSales,
-      //     'totalDrinksOrdered': totalDrinksOrdered,
-      //     'listOfDrinksOrdered': listOfDrinksOrdered,
-      //     'totalSalesAmount': totalSalesAmount,
-      //   };
-
-      //   await salesSummaryCollection.add(salesSummaryData);
-      // }
-
-      // // Delete all documents in the orders collection
-      // final ordersCollection = FirebaseFirestore.instance.collection('orders');
-      // final batch = FirebaseFirestore.instance.batch();
-      // for (var order in orders) {
-      //   batch.delete(order.reference);
-      // }
-      // await batch.commit();
-
-      // // Redirect to SalesSummaryPage
-      // Navigator.pushReplacement(
-      //   context,
-      //   MaterialPageRoute(builder: (context) => const SalesSummaryPage()),
-      // );
       if (orders.isEmpty) return;
-
       final salesSummaryCollection =
           FirebaseFirestore.instance.collection('salesSummary');
 
-      // Find the earliest order timestamp (this becomes the "sales date")
       DateTime earliest = orders
           .map((o) => (o['timestamp'] as Timestamp).toDate().toLocal())
           .reduce((a, b) => a.isBefore(b) ? a : b);
 
-      // Normalize to midnight local date (YYYY-MM-DD)
       final formattedDate =
           '${earliest.year.toString().padLeft(4, '0')}-${earliest.month.toString().padLeft(2, '0')}-${earliest.day.toString().padLeft(2, '0')}';
 
-      // Aggregate metrics across all provided orders
       final int totalSales = orders.length;
       final int totalDrinksOrdered = orders.fold<int>(
         0,
@@ -145,7 +51,6 @@ class OrderingStatusPage extends StatelessWidget {
         totalSalesAmount += ((o['totalAmount'] as num?)?.toDouble() ?? 0.0);
       }
 
-      // Check existing summary for this date
       final existingQuery = await salesSummaryCollection
           .where('date', isEqualTo: formattedDate)
           .limit(1)
@@ -160,7 +65,6 @@ class OrderingStatusPage extends StatelessWidget {
         final updatedTotalDrinks =
             (existingData['totalDrinksOrdered'] as int? ?? 0) + totalDrinksOrdered;
 
-        // Merge drink maps safely
         final Map<String, int> updatedDrinks =
             Map<String, int>.from(existingData['listOfDrinksOrdered'] as Map? ?? {});
         listOfDrinksOrdered.forEach((key, value) {
@@ -177,7 +81,6 @@ class OrderingStatusPage extends StatelessWidget {
           'totalSalesAmount': updatedAmount,
         });
       } else {
-        // Create new summary document for this "sales date"
         final salesSummaryData = {
           'date': formattedDate,
           'totalSales': totalSales,
@@ -188,14 +91,12 @@ class OrderingStatusPage extends StatelessWidget {
         await salesSummaryCollection.add(salesSummaryData);
       }
 
-      // Delete processed orders in a batch
       final batch = FirebaseFirestore.instance.batch();
       for (var order in orders) {
         batch.delete(order.reference);
       }
       await batch.commit();
 
-      // Navigate to SalesSummaryPage (or refresh as needed)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const SalesSummaryPage()),
@@ -205,28 +106,14 @@ class OrderingStatusPage extends StatelessWidget {
     }
   }
 
-  // Function to fetch today's orders
-  // Stream<QuerySnapshot> fetchTodaysOrders() {
-  //   final now = DateTime.now();
-  //   final startOfDay = DateTime(now.year, now.month, now.day);
-
-  //   return FirebaseFirestore.instance
-  //       .collection('orders')
-  //       .where('timestamp', isLessThanOrEqualTo: startOfDay)
-  //       .orderBy('timestamp', descending: true)
-  //       .snapshots();
-  // }
-
-  // Replace fetchTodaysOrders with fetchCurrentOrders that returns all remaining orders
+  // Return all remaining orders (current session). Earliest order will be the first sale.
   Stream<QuerySnapshot> fetchCurrentOrders() {
-    // Return all orders (current session). Earliest order will be the first sale.
     return FirebaseFirestore.instance
         .collection('orders')
         .orderBy('timestamp', descending: false) // earliest first
         .snapshots();
   }
 
-  // Function to update the status of an order to "Complete"
   Future<void> markAsComplete(BuildContext context, String orderId) async {
     if (!await WifiChecker.isNetworkConnected()) {
       DialogHelper.showWifiWarning(context);
@@ -241,7 +128,6 @@ class OrderingStatusPage extends StatelessWidget {
     }
   }
 
-  // Function to update the payment status of an order to "Paid"
   Future<void> markAsPaid(BuildContext context, String orderId) async {
     if (!await WifiChecker.isNetworkConnected()) {
       DialogHelper.showWifiWarning(context);
@@ -262,13 +148,41 @@ class OrderingStatusPage extends StatelessWidget {
       return;
     }
     try {
-      await FirebaseFirestore.instance
-          .collection('orders')
-          .doc(orderId)
-          .delete();
-      print('Order $orderId removed successfully.');
+      await FirebaseFirestore.instance.collection('orders').doc(orderId).delete();
     } catch (e) {
       print('Failed to remove order: $e');
+    }
+  }
+
+  // Show dialog to input an amount; add to _addedAmount
+  Future<void> _addAmountDialog(BuildContext context) async {
+    final controller = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add amount'),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(hintText: 'Enter amount (e.g. 5.50)'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Add')),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final input = controller.text.trim();
+      final value = double.tryParse(input.replaceAll(',', ''));
+      if (value != null) {
+        setState(() => _addedAmount += value);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid amount')),
+        );
+      }
     }
   }
 
@@ -288,8 +202,6 @@ class OrderingStatusPage extends StatelessWidget {
           }
 
           final orders = snapshot.data!.docs;
-
-          // Check if there are any unpaid orders
           final hasUnpaidOrders = orders.any((order) {
             final paymentStatus = order['paymentStatus'] as String? ?? 'Unpaid';
             return paymentStatus == 'Unpaid';
@@ -306,26 +218,16 @@ class OrderingStatusPage extends StatelessWidget {
                       scrollDirection: Axis.vertical,
                       child: DataTable(
                         columns: const [
-                          DataColumn(label: Text('No.')), // Column for No.
-                          DataColumn(
-                            label: Text('Action'),
-                          ), // Column for Action Buttons
-                          DataColumn(label: Text('Price')), // Column for Price
-                          DataColumn(
-                            label: Text('Orders'),
-                          ), // Column for Orders
-                          DataColumn(
-                            label: Text('Status'),
-                          ), // Column for Status
-                          DataColumn(
-                            label: Text('Payment Status'),
-                          ), // Column for Payment Status
+                          DataColumn(label: Text('No.')),
+                          DataColumn(label: Text('Action')),
+                          DataColumn(label: Text('Price')),
+                          DataColumn(label: Text('Orders')),
+                          DataColumn(label: Text('Status')),
+                          DataColumn(label: Text('Payment Status')),
                         ],
                         rows: List<DataRow>.generate(orders.length, (index) {
                           final order = orders[index];
                           final orderId = order.id;
-
-                          // Group and count items
                           final itemsList = order['items'] as List;
                           final Map<String, int> groupedItems = {};
                           for (var item in itemsList) {
@@ -333,117 +235,88 @@ class OrderingStatusPage extends StatelessWidget {
                             groupedItems[itemName] =
                                 (groupedItems[itemName] ?? 0) + 1;
                           }
-
-                          // Format items as "ItemName xCount"
                           final formattedItems = groupedItems.entries
-                              .map(
-                                (entry) =>
-                                    entry.value > 1
-                                        ? '${entry.key} x${entry.value}'
-                                        : entry.key,
-                              )
+                              .map((entry) => entry.value > 1
+                                  ? '${entry.key} x${entry.value}'
+                                  : entry.key)
                               .join('; ');
-
                           final status = order['status'] as String;
                           final paymentStatus =
                               order['paymentStatus'] as String? ?? 'Unpaid';
-                          final totalPrice =
-                              order['totalAmount']
-                                  as num; // Assuming totalAmount is stored in the order
+                          final totalPrice = order['totalAmount'] as num;
 
-                          return DataRow(
-                            cells: [
-                              // No.
-                              DataCell(Text('${index + 1}')),
-
-                              // Action Buttons
-                              DataCell(
-                                Row(
-                                  children: [
-                                    // Complete Button
-                                    if (status != 'Complete')
-                                      ElevatedButton(
-                                        onPressed:
-                                            () => markAsComplete(
-                                              context,
-                                              orderId,
-                                            ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blue,
-                                        ),
-                                        child: const Text('Complete'),
-                                      ),
-                                    const SizedBox(width: 8),
-                                    // Paid Button
-                                    if (paymentStatus != 'Paid')
-                                      ElevatedButton(
-                                        onPressed:
-                                            () => markAsPaid(context, orderId),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green,
-                                        ),
-                                        child: const Text('Paid'),
-                                      ),
-                                    const SizedBox(width: 8),
-                                    // Remove Button
-                                    if (paymentStatus != 'Paid')
-                                      ElevatedButton(
-                                        onPressed: () async {
-                                          await removeOrder(
-                                            context,
-                                            orderId,
-                                          ); // Remove the order
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
-                                        ),
-                                        child: const Text('Remove'),
-                                      ),
-                                  ],
-                                ),
-                              ),
-
-                              // Price
-                              DataCell(
-                                Text('\$${totalPrice.toStringAsFixed(2)}'),
-                              ),
-
-                              // Orders
-                              DataCell(Text(formattedItems)),
-
-                              // Status
-                              DataCell(
-                                Text(
-                                  status,
-                                  style: TextStyle(
-                                    color:
-                                        status == 'Complete'
-                                            ? Colors.green
-                                            : Colors.orange,
+                          return DataRow(cells: [
+                            DataCell(Text('${index + 1}')),
+                            DataCell(Row(
+                              children: [
+                                if (status != 'Complete')
+                                  ElevatedButton(
+                                    onPressed: () => markAsComplete(context, orderId),
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                                    child: const Text('Complete'),
                                   ),
-                                ),
-                              ),
-
-                              // Payment Status
-                              DataCell(
-                                Text(
-                                  paymentStatus,
-                                  style: TextStyle(
-                                    color:
-                                        paymentStatus == 'Paid'
-                                            ? Colors.green
-                                            : Colors.red,
+                                const SizedBox(width: 8),
+                                if (paymentStatus != 'Paid')
+                                  ElevatedButton(
+                                    onPressed: () => markAsPaid(context, orderId),
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                    child: const Text('Paid'),
                                   ),
-                                ),
-                              ),
-                            ],
-                          );
+                                const SizedBox(width: 8),
+                                if (paymentStatus != 'Paid')
+                                  ElevatedButton(
+                                    onPressed: () async => await removeOrder(context, orderId),
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                    child: const Text('Remove'),
+                                  ),
+                                const SizedBox(width: 8),
+                                // + button: add this order's price to _addedAmount
+                                if (paymentStatus != 'Paid')
+                                  IconButton(
+                                    onPressed: () {
+                                      final priceNum = (order['totalAmount'] as num?) ?? 0;
+                                      setState(() => _addedAmount += priceNum.toDouble());
+                                    },
+                                    icon: const Icon(Icons.add, color: Colors.blue),
+                                    tooltip: 'Add this amount',
+                                  ),
+                              ],
+                            )),
+                            DataCell(Text('\$${totalPrice.toStringAsFixed(2)}')),
+                            DataCell(Text(formattedItems)),
+                            DataCell(Text(
+                              status,
+                              style: TextStyle(color: status == 'Complete' ? Colors.green : Colors.orange),
+                            )),
+                            DataCell(Text(
+                              paymentStatus,
+                              style: TextStyle(color: paymentStatus == 'Paid' ? Colors.green : Colors.red),
+                            )),
+                          ]);
                         }),
                       ),
                     ),
                   ),
                 ),
               ),
+
+              // Display accumulated added amount
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Row(
+                  children: [
+                    const Text('Added amount:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 8),
+                    Text('\$${_addedAmount.toStringAsFixed(2)}'),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => setState(() => _addedAmount = 0.0),
+                      child: const Text('Clear'),
+                    ),
+                  ],
+                ),
+              ),
+
               // End of Sales Button
               Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -471,15 +344,9 @@ class OrderingStatusPage extends StatelessWidget {
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: hasUnpaidOrders ? Colors.grey : Colors.red,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 16,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                   ),
-                  child: const Text(
-                    'End of Sales',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  child: const Text('End of Sales', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
